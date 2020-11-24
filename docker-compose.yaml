@@ -1,0 +1,77 @@
+version: '3'
+#quando mudo para a v. 2.3 o banco de dados gera erro e a pasta dbdata ao ser excluida tenho que refazer
+#todos os processos novamente para rodar com a v.3 que esta no momento.
+
+services:
+#?aplicacao
+  app:
+    build: .
+    container_name: app
+
+    volumes:
+    - .:/var/www
+    networks:
+      - app-network
+
+#    environment:
+#      - DB_DATABASE=laravel
+#      - DB_PASSWORD=root
+#      - DB_USERNAME=root
+#      - DB_HOST=db
+
+#    depends_on:
+#      db:
+#        condition: service_healthy
+
+#Serviço Nginx - configuracao
+  nginx:
+    build: .docker/nginx
+    container_name: nginx
+    restart: always
+    tty: true
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+    networks:
+      - app-network
+
+#servico redis
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    networks:
+      - app-network
+
+
+#Bando de dados mysql
+  db:
+    build: .docker/mysql
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=laravel
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=root
+#    volumes:
+#      - ./.docker/dbdata:/var/lib/mysql
+    networks:
+      - app-network
+
+#    healthcheck:
+#      test: ["CMD-SHELL", 'mysql -uroot --database=laravel --password=root --execute="SELECT count(table_name) > 0 FROM information_schema.tables;" --skip-column-names -B']
+#      interval: 10s
+#      timeout: 10s
+#      retries: 4
+
+#criando uma rede para a comunicacao entre os servicos
+networks:
+  app-network:
+    driver: bridge
+#    o driver : bridge serve para a resolucao de nomes
